@@ -29,8 +29,14 @@ class StrTool:
         :return:
         """
         regex='([\\s\\S]*?)'
+        #补充：　
+        #\s -- 匹配任何不可见字符，包括空格、制表符、换页符等等
+        #\S -- 匹配任何可见字符 通常[/s/S] -- 可匹配任意字符
+        #[\s\S]*? -- 匹配懒惰模式的任意字符
+        print(lbStr+' '+' '+rbStr+ ' '+'---')
         r=re.compile(lbStr+regex+rbStr)
         result=r.findall(sourceStr)
+        print(result)
         if str(offset) == 'all':
             return result
         else:

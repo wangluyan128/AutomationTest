@@ -105,13 +105,13 @@ if __name__=='__main__':
     parser.add_argument('-clr', '--clr', help='是否清空已有测试结果,1:是、0:否,默认为0', type=str)
     args=parser.parse_args()
 
-    # 处理pytest文件
+    # 处理pytest文件 得到ini配置文件
     deal_pytest_ini_file()
 
     # 初始化java依赖的libs
     java_maven_init()
 
-    # 初始化httpserver
+    # 初始化httpserver    开启配置文件里的端口
     http_server_init()
 
     # 初始化mitmproxy

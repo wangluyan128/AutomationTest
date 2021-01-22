@@ -9,12 +9,12 @@ import subprocess
 
 def start_http_server(port):
     if 'Windows' == platform.system():
-        subprocess.check_output("start cmd.exe @cmd /c python -m http.server %s" % (port), shell=True)
+        subprocess.check_output("start cmd.exe @cmd /c python -m http.server %s" % (port), shell=True) ##python3中启动一个简单的http服务器
     else:
         subprocess.check_output('nohup python3 -m http.server %s %s' % (port, '>>logs/httpserver.log 2>&1 &'),shell=True)
 
 def http_server_init():
-    httpserver_config = Read_Http_Server_Config().httpserver_config
+    httpserver_config = Read_Http_Server_Config().httpserver_config  #获取ip及端口
     port = httpserver_config.httpserver_port
     if "windows"==platform.system().lower():
         get_httpserver_process_id_command='netstat -ano|findstr "0.0.0.0:%s"'%port
@@ -52,5 +52,5 @@ def http_server_init():
         pass
     print('启动http.server,使用端口' + port)
     p = multiprocessing.Process(target=start_http_server,args=(port,))
-    p.daemon = True
+    p.daemon = True  #主进程运行完不会检查子进程的状态（是否执行完），直接结束进程；
     p.start()
