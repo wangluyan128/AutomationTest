@@ -1,6 +1,7 @@
 #-*- coding:utf8 -*-
 import os
 import subprocess
+from multiprocessing.pool import Pool
 from time import sleep
 
 import multiprocessing as mp
@@ -39,9 +40,17 @@ class TestDemo:
     def request(self,flow: mitmproxy.http.HTTPFlow):
         self.num = self.num+1
         ctx.log.info("We've seen %d flows" %self.num)
+
+    def a(self,x):
+        print("this is a start")
+        print(x)
+        print("this is a stop")
+    def b(self,num):
+        return num
 addons = [
     Counter()
 ]
+
 if __name__ == '__main__':
     t = TestDemo()
     t.T_1()
@@ -52,4 +61,10 @@ if __name__ == '__main__':
     #print('child PID:',p.pid)
     #print('-----------------------')
     #print('End')
+    p = Pool(5)
+    for i in range(10):
+        #这里表示，当b函数执行之后就会调用a函数的返回值传给a函数
+        p.apply_async(t.b,args=(i,),callback=t.a)
+    p.close()
+    p.join()
 

@@ -1,8 +1,13 @@
 #-*- coding:utf8 -*-
+import json
+import time
+
 import mitmproxy.http
 import typing
+
+import xlwt as xlwt
 from mitmproxy import ctx, http
-from mitmproxy.contentviews import json
+
 
 
 class HTTPRecordModifier:
@@ -10,6 +15,11 @@ class HTTPRecordModifier:
     def __init__(self):#, flow: http.HTTPFlow
         #self.flow = flow
         self.num =0
+
+        self.requestNum = 0
+        self.responseOrErrorNum = 0
+        self.aa = 0
+        self.all_arr = [['请求路径','请求域名','请求path','请求大小(b)','响应大小','响应类型','请求响应时间差(s)','请求开始时间','请求响应结束时间']]
     #针对 HTTP 生命周期
     def http_connect(self, flow: mitmproxy.http.HTTPFlow):
         """
@@ -17,6 +27,7 @@ class HTTPRecordModifier:
         """
         #因为谷歌是个不存在的网站，所有就不要浪费时间去尝试连接服务端了，所有当发现客户端试图访问谷歌时，直接断开连接
         #确认客户端是想访问www.goolge.com
+        flow.customField = []
         if flow.request.host == "www.goolge.com":
             #返回一个非2XX响应断开连接
             flow.response = http.HTTPResponse.make(404)
@@ -50,6 +61,7 @@ class HTTPRecordModifier:
     def request(self,flow:mitmproxy.http.HTTPFlow):
         #所有当客户端发起百度搜索时，记录下用户的搜索词，再修改请求，将搜索词改为“360 搜索”
         #忽略非百度搜索地址
+        '''
         if flow.request.host != "www.baidu.com" or not flow.request.path.startswith("/s"):
             return
         #确认请求参数中有搜索词
@@ -60,14 +72,21 @@ class HTTPRecordModifier:
         ctx.log.info("catch search word:%s" %flow.request.query.get("wd"))
         #替换搜索词为“360搜索
         flow.request.query.set_all("wd",["360搜索"])
+        '''
+        self.num = self.num + 1
+        self.requestNum = self.requestNum+1
+        flow.start_time = time.time()
+        flow.customField = [flow.request.url,flow.request.host,flow.request.path]
+        self.all_arr.append(flow.customField)
+        # print('----------',len(self.all_arr))
 
 
     def responseheaders(self, flow: mitmproxy.http.HTTPFlow):
         """
         (Called when) 来自服务端的 HTTP 响应的头部被成功读取。此时 flow 中的 response 的 body 是空的。
         """
-
-    def response(self,flow: mitmproxy.http.HTTPFlow):
+    '''
+    def response_2(self,flow: mitmproxy.http.HTTPFlow):
         #所有当客户端访问 360 搜索时，将页面中所有“搜索”字样改为“请使用谷歌”
         #忽略非360搜索地址
         if flow.request.host != "www.so.com":
@@ -76,21 +95,56 @@ class HTTPRecordModifier:
         text = flow.response.get_text()
         text = text.replace("搜索","请使用谷歌")
         flow.response.set_text(text)
-
-    def response_1(self, flow: mitmproxy.http.HTTPFlow):
+    '''
+    def response(self, flow: mitmproxy.http.HTTPFlow):
         """
         (Called when) 来自服务端端的 HTTP 响应被成功完整读取。
         """
-        self.num = self.num + 1
+
         flow.response.headers["count"] = str(self.num)
         print(str(flow.response.headers["count"]))
         ctx.log.info("We've seen %d flows"%self.num)
+        text = flow.response.get_text()
+        print(type(text))
+        if isinstance(text,dict):
+            response = json.loads(text)
+            print(str(response))
+        if isinstance(text,str):
+            print(text)
+        self.aa = self.aa + 1
+        self.responseOrErrorNum = self.responseOrErrorNum+1
+        flow.end_time = time.time()
+        '''
+        try:
+            flow.customField.append(flow.request.headers['Content-Length'])
+        except:
+            flow.customField.append("")
+        try:
+            flow.customField.append(flow.response.headers['Content-Length'])
+        except:
+            flow.customField.append("")
+        try:
+            flow.customField.append(flow.response.headers['Content-Type'])
+        except Exception:
+            flow.customField.append("")
+        try:
+            time_gap = flow.end_time - flow.start_time
+            flow.customField.append(time_gap)
+
+        except Exception:
+            flow.customField.append("")
+        '''
+        self.formatoutput(flow)
+        self.save_excel(self.all_arr,'toutiao-content-10.xls')
 
 
     def error(self, flow: mitmproxy.http.HTTPFlow):
         """
         (Called when) 发生了一个 HTTP 错误。比如无效的服务端响应、连接断开等。注意与“有效的 HTTP 错误返回”不是一回事，后者是一个正确的服务端响应，只是 HTTP code 表示错误而已。
         """
+        self.aa = self.aa + 1
+        self.responseOrErrorNum = self.responseOrErrorNum+1
+        flow.customField.append("Error response")
     #针对 TCP 生命周期
     def tcp_start(self, flow: mitmproxy.tcp.TCPFlow):
         """
@@ -209,6 +263,27 @@ class HTTPRecordModifier:
     #构造响应报文
     def create_mocked_response(self, code=200, header={}, body=""):
         self.flow.response = http.HTTPResponse.make(code, bytes(body, "utf-8"), header)
+
+    def formatoutput(self, flow):
+        ctx.log.info("We've seen %d flows" % self.num)
+        try:
+            flow.customField.append(flow.start_time)
+        except:
+            flow.customField.append("")
+        try:
+            flow.customField.append(flow.end_time)
+        except:
+            flow.customField.append("")
+
+
+    def save_excel(self,array,filename):
+        workbook = xlwt.Workbook()
+        worksheet = workbook.add_sheet('test')
+        for x in range(len(array)):
+            for y in range(len(array[x])):
+                worksheet.write(x, y, array[x][y])
+        workbook.save(filename)
+
 
 #将上述功能组装成名为 Joker 的 addon，并保留之前展示名为 Counter 的 addon，都加载进 mitmproxy
 
