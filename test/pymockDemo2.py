@@ -25,7 +25,15 @@ skip_pypy = pytest.mark.skipif(
 # Python 3.8 changed the output formatting (bpo-35500), which has been ported to mock 3.0
 NEW_FORMATTING = sys.version_info >= (3, 8)
 
+'''
+fixture区别于unnitest的传统单元测试（setup/teardown）有显著改进：
 
+　　1.有独立的命名，并通过声明它们从测试函数、模块、类或整个项目中的使用来激活。
+
+　　2.按模块化的方式实现，每个fixture都可以互相调用。
+
+　　3.fixture的范围从简单的单元测试到复杂的功能测试，可以对fixture配置参数，或者跨函数function，类class，模块module或整个测试session范围。
+'''
 @pytest.fixture
 def needs_assert_rewrite(pytestconfig):
     """
@@ -1019,3 +1027,7 @@ def test_used_with_session_scope(testdir: Any) -> None:
     result = testdir.runpytest_subprocess()
     assert "AssertionError" not in result.stderr.str()
     result.stdout.fnmatch_lines("* 1 passed in *")
+
+if __name__=='__main__':
+    command=['-v','pymockDemo2.py']
+    pytest.main(command)

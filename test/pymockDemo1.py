@@ -57,3 +57,7 @@ def test_name_length2(mocker):
     assert 4 == name_length('test')
     assert mock_print.called
     assert mock_len.called
+
+if __name__=='__main__':
+    command=['-v','pymockDemo1.py']
+    pytest.main(command)
